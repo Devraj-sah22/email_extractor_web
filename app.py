@@ -1,178 +1,171 @@
 from flask import Flask, render_template, request, jsonify
-import requests
-import re
+import requests, re, time, json, base64
 from bs4 import BeautifulSoup
+from urllib.parse import urljoin, urlparse
+from concurrent.futures import ThreadPoolExecutor
 import validators
-from urllib.parse import urlparse
-import time
-from concurrent.futures import ThreadPoolExecutor, as_completed
-import json
-import os
+from playwright.sync_api import sync_playwright
 
 app = Flask(__name__)
 
 EMAIL_REGEX = r'[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}'
+HEADERS = {"User-Agent": "Mozilla/5.0"}
 
-# Cache to store results (for demo purposes)
-RESULTS_CACHE = {}
+# ---------------- UTILS ----------------
 
 def is_valid_url(url):
     try:
-        result = urlparse(url)
-        return all([result.scheme, result.netloc])
+        p = urlparse(url)
+        return p.scheme and p.netloc
     except:
         return False
 
-def extract_emails_from_url(url):
+# ---------------- CLOUDFLARE DECODE ----------------
+
+def decode_cf_email(encoded):
+    r = int(encoded[:2], 16)
+    return ''.join(chr(int(encoded[i:i+2], 16) ^ r) for i in range(2, len(encoded), 2))
+
+# ---------------- FAST HTML SCAN ----------------
+
+def fast_extract(url):
     emails = set()
     try:
-        headers = {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
-        }
-        response = requests.get(url, headers=headers, timeout=10)
-        soup = BeautifulSoup(response.text, 'html.parser')
-        
-        # Extract from page text
-        text = soup.get_text()
-        found = re.findall(EMAIL_REGEX, text)
-        emails.update(found)
-        
-        # Extract from mailto links
-        for link in soup.find_all('a', href=True):
-            href = link['href']
-            if href.startswith('mailto:'):
-                email = href.replace('mailto:', '').split('?')[0]
-                if re.match(EMAIL_REGEX, email):
-                    emails.add(email)
-        
-        # Extract from meta tags
-        for meta in soup.find_all('meta'):
-            content = meta.get('content', '')
-            if content and '@' in content:
-                found_meta = re.findall(EMAIL_REGEX, content)
-                emails.update(found_meta)
-                
-    except Exception as e:
-        print(f"Error extracting from {url}: {e}")
+        r = requests.get(url, headers=HEADERS, timeout=15)
+        if r.status_code != 200:
+            return emails
+
+        html = r.text
+        soup = BeautifulSoup(html, "html.parser")
+
+        # Normal emails
+        emails.update(re.findall(EMAIL_REGEX, html))
+
+        # mailto
+        for a in soup.find_all("a", href=True):
+            if a["href"].lower().startswith("mailto:"):
+                emails.add(a["href"].split(":")[1].split("?")[0])
+
+        # Cloudflare emails
+        for tag in soup.select("span.__cf_email__"):
+            encoded = tag.get("data-cfemail")
+            if encoded:
+                emails.add(decode_cf_email(encoded))
+
+    except:
         pass
+
     return emails
 
-def classify_emails(emails):
-    valid, invalid = [], []
-    for email in emails:
-        if validators.email(email):
-            valid.append(email)
-        else:
-            invalid.append(email)
-    return valid, invalid
+# ---------------- DEEP JS SCAN ----------------
 
-def process_urls_parallel(urls, max_workers=5):
-    all_emails = set()
-    
-    with ThreadPoolExecutor(max_workers=max_workers) as executor:
-        future_to_url = {executor.submit(extract_emails_from_url, url): url for url in urls}
-        
-        for future in as_completed(future_to_url):
-            url = future_to_url[future]
-            try:
-                emails = future.result()
-                all_emails.update(emails)
-            except Exception as e:
-                print(f"Error processing {url}: {e}")
-    
-    return all_emails
+def deep_extract(url):
+    emails = set()
+    try:
+        with sync_playwright() as p:
+            browser = p.chromium.launch(headless=True)
+            page = browser.new_page()
+            page.goto(url, wait_until="networkidle", timeout=60000)
+            page.wait_for_timeout(6000)
+            html = page.content()
+            browser.close()
 
-@app.route('/')
+            emails.update(re.findall(EMAIL_REGEX, html))
+
+    except:
+        pass
+
+    return emails
+
+# ---------------- INTERNAL LINK CRAWL ----------------
+
+def crawl_internal_pages(base_url, limit=6):
+    urls = set()
+    try:
+        r = requests.get(base_url, headers=HEADERS, timeout=10)
+        soup = BeautifulSoup(r.text, "html.parser")
+
+        for a in soup.find_all("a", href=True):
+            link = urljoin(base_url, a["href"])
+            if base_url in link and len(urls) < limit:
+                urls.add(link)
+
+    except:
+        pass
+
+    return urls
+
+# ---------------- MASTER PROCESS ----------------
+
+def extract_emails_global(url):
+    found = set()
+
+    # 1️⃣ Fast scan
+    found |= fast_extract(url)
+
+    # 2️⃣ Crawl internal pages
+    for sub in crawl_internal_pages(url):
+        found |= fast_extract(sub)
+
+    # 3️⃣ Deep scan if still empty
+    if not found:
+        found |= deep_extract(url)
+
+    return found
+
+# ---------------- ROUTES ----------------
+
+@app.route("/")
 def index():
-    return render_template('index.html')
+    return render_template("index.html")
 
-@app.route('/extract', methods=['POST'])
+@app.route("/extract", methods=["POST"])
 def extract():
     data = request.json
-    urls = data.get('urls', [])
-    option = data.get('filter', 'valid')
-    
-    # Remove duplicates and empty strings
-    urls = list(set([url.strip() for url in urls if url.strip()]))
-    
-    # Add https:// if missing and validate
-    processed_urls = []
-    for url in urls:
-        if not url.startswith(('http://', 'https://')):
-            url = 'https://' + url
-        if is_valid_url(url):
-            processed_urls.append(url)
-    
-    if not processed_urls:
-        return jsonify({
-            'count': 0,
-            'emails': [],
-            'message': 'No valid URLs provided',
-            'status': 'error'
-        })
-    
-    # Check cache first
-    cache_key = json.dumps(sorted(processed_urls) + [option])
-    if cache_key in RESULTS_CACHE:
-        cached_data = RESULTS_CACHE[cache_key]
-        cached_data['cached'] = True
-        return jsonify(cached_data)
-    
-    # Process URLs in parallel for speed
-    start_time = time.time()
-    all_emails = process_urls_parallel(processed_urls)
-    elapsed_time = time.time() - start_time
-    
-    valid, invalid = classify_emails(all_emails)
-    
-    if option == 'valid':
-        result = sorted(valid)
-    elif option == 'invalid':
-        result = sorted(invalid)
+    urls = list(set(data.get("urls", [])))
+    filter_type = data.get("filter", "valid")
+
+    final_urls = []
+    for u in urls:
+        if not u.startswith(("http://", "https://")):
+            u = "https://" + u
+        if is_valid_url(u):
+            final_urls.append(u)
+
+    if not final_urls:
+        return jsonify({"status": "error", "emails": [], "count": 0})
+
+    start = time.time()
+    all_emails = set()
+
+    with ThreadPoolExecutor(max_workers=4) as exe:
+        for result in exe.map(extract_emails_global, final_urls):
+            all_emails |= result
+
+    valid, invalid = [], []
+    for e in all_emails:
+        (valid if validators.email(e) else invalid).append(e)
+
+    if filter_type == "valid":
+        result = valid
+    elif filter_type == "invalid":
+        result = invalid
     else:
-        result = sorted(list(all_emails))
-    
-    response_data = {
-        'count': len(result),
-        'emails': result,
-        'stats': {
-            'urls_processed': len(processed_urls),
-            'total_found': len(all_emails),
-            'valid_emails': len(valid),
-            'invalid_emails': len(invalid),
-            'processing_time': round(elapsed_time, 2)
+        result = list(all_emails)
+
+    return jsonify({
+        "status": "success",
+        "count": len(result),
+        "emails": sorted(result),
+        "stats": {
+            "urls_processed": len(final_urls),
+            "total_found": len(all_emails),
+            "valid_emails": len(valid),
+            "invalid_emails": len(invalid),
+            "processing_time": round(time.time() - start, 2)
         },
-        'message': f'Successfully processed {len(processed_urls)} URL(s)',
-        'status': 'success'
-    }
-    
-    # Cache the result
-    RESULTS_CACHE[cache_key] = response_data.copy()
-    
-    return jsonify(response_data)
+        "message": "Extraction completed"
+    })
 
-@app.route('/export', methods=['POST'])
-def export():
-    data = request.json
-    emails = data.get('emails', [])
-    format_type = data.get('format', 'txt')
-    
-    if format_type == 'txt':
-        content = '\n'.join(emails)
-        return jsonify({'content': content, 'filename': 'emails.txt'})
-    elif format_type == 'csv':
-        content = 'Email\n' + '\n'.join([f'"{email}"' for email in emails])
-        return jsonify({'content': content, 'filename': 'emails.csv'})
-    elif format_type == 'json':
-        content = json.dumps({'emails': emails}, indent=2)
-        return jsonify({'content': content, 'filename': 'emails.json'})
-    
-    return jsonify({'error': 'Invalid format'}), 400
-
-@app.route('/clear-cache', methods=['POST'])
-def clear_cache():
-    RESULTS_CACHE.clear()
-    return jsonify({'status': 'success', 'message': 'Cache cleared'})
-
-if __name__ == '__main__':
-    app.run(debug=True, host='0.0.0.0', port=5000)
+if __name__ == "__main__":
+    app.run(debug=True)

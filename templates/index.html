@@ -1,111 +1,124 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <title>Email Extractor Pro</title>
     <link rel="stylesheet" href="/static/style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
+
 <body>
 
-<div class="container">
-    <h1><i class="fas fa-envelope"></i> Email Extractor <span>PRO</span></h1>
-    <p class="subtitle">Extract emails from multiple websites simultaneously</p>
+    <div class="container">
+        <h1><i class="fas fa-envelope"></i> Email Extractor <span>PRO</span></h1>
+        <p class="subtitle">Extract emails from multiple websites simultaneously</p>
 
-    <div class="url-input-section">
-        <div class="input-header">
-            <h3><i class="fas fa-link"></i> Enter URLs</h3>
-            <span class="hint">(One per line, up to 10 URLs at once)</span>
+        <div class="url-input-section">
+            <div class="input-header">
+                <h3><i class="fas fa-link"></i> Enter URLs</h3>
+                <span class="hint">(One per line, up to 10 URLs at once)</span>
+            </div>
+            <textarea id="urls"
+                placeholder="Example: https://example.com&#10;www.another-site.org&#10;github.com"></textarea>
+            <div class="url-counter">URLs: <span id="urlCount">0</span></div>
         </div>
-        <textarea id="urls" placeholder="Example: https://example.com&#10;www.another-site.org&#10;github.com"></textarea>
-        <div class="url-counter">URLs: <span id="urlCount">0</span></div>
+
+        <div class="controls">
+            <div class="filters">
+                <h3><i class="fas fa-filter"></i> Filter Options</h3>
+                <div class="filter-options">
+                    <label class="radio-btn">
+                        <input type="radio" name="filter" value="valid" checked>
+                        <span class="checkmark"></span>
+                        <i class="fas fa-check-circle"></i> Valid Emails
+                    </label>
+                    <label class="radio-btn">
+                        <input type="radio" name="filter" value="invalid">
+                        <span class="checkmark"></span>
+                        <i class="fas fa-times-circle"></i> Invalid Emails
+                    </label>
+                    <label class="radio-btn">
+                        <input type="radio" name="filter" value="all">
+                        <span class="checkmark"></span>
+                        <i class="fas fa-list"></i> Show All
+                    </label>
+                    <label class="radio-btn">
+                        <input type="checkbox" id="deepScan">
+                        <span class="checkmark"></span>
+                        <i class="fas fa-bolt"></i>
+                        Deep Scan (JS websites)
+                    </label>
+                </div>
+            </div>
+
+            <div class="actions">
+                <button onclick="extractEmails()" class="btn-primary">
+                    <i class="fas fa-search"></i> Extract Emails
+                </button>
+                <button onclick="clearAll()" class="btn-secondary">
+                    <i class="fas fa-trash"></i> Clear All
+                </button>
+            </div>
+        </div>
+
+        <div class="loading" id="loading" style="display: none;">
+            <div class="spinner"></div>
+            <p>Processing URLs... This may take a moment.</p>
+        </div>
+
+        <div class="result-section">
+            <div class="result-header">
+                <h3><i class="fas fa-chart-bar"></i> Results (<span id="count">0</span>)</h3>
+                <div class="stats" id="stats"></div>
+                <div class="export-buttons" id="exportButtons" style="display: none;">
+                    <button onclick="exportEmails('txt')" class="btn-export"><i class="fas fa-file-alt"></i>
+                        TXT</button>
+                    <button onclick="exportEmails('csv')" class="btn-export"><i class="fas fa-file-csv"></i>
+                        CSV</button>
+                    <button onclick="exportEmails('json')" class="btn-export"><i class="fas fa-file-code"></i>
+                        JSON</button>
+                    <button onclick="copyToClipboard()" class="btn-export"><i class="fas fa-copy"></i> Copy</button>
+                </div>
+            </div>
+
+            <div class="result-container">
+                <div class="result-placeholder" id="placeholder">
+                    <i class="fas fa-inbox"></i>
+                    <p>Extracted emails will appear here</p>
+                </div>
+                <pre id="output"></pre>
+            </div>
+        </div>
+
+        <div class="features">
+            <h3><i class="fas fa-star"></i> Premium Features</h3>
+            <div class="features-grid">
+                <div class="feature">
+                    <i class="fas fa-bolt"></i>
+                    <h4>Parallel Processing</h4>
+                    <p>Process multiple URLs simultaneously for faster results</p>
+                </div>
+                <div class="feature">
+                    <i class="fas fa-shield-alt"></i>
+                    <h4>Smart Validation</h4>
+                    <p>Advanced email validation with real-time filtering</p>
+                </div>
+                <div class="feature">
+                    <i class="fas fa-download"></i>
+                    <h4>Multiple Formats</h4>
+                    <p>Export results in TXT, CSV, and JSON formats</p>
+                </div>
+                <div class="feature">
+                    <i class="fas fa-database"></i>
+                    <h4>Result Caching</h4>
+                    <p>Faster results for previously processed URLs</p>
+                </div>
+            </div>
+        </div>
     </div>
 
-    <div class="controls">
-        <div class="filters">
-            <h3><i class="fas fa-filter"></i> Filter Options</h3>
-            <div class="filter-options">
-                <label class="radio-btn">
-                    <input type="radio" name="filter" value="valid" checked>
-                    <span class="checkmark"></span>
-                    <i class="fas fa-check-circle"></i> Valid Emails
-                </label>
-                <label class="radio-btn">
-                    <input type="radio" name="filter" value="invalid">
-                    <span class="checkmark"></span>
-                    <i class="fas fa-times-circle"></i> Invalid Emails
-                </label>
-                <label class="radio-btn">
-                    <input type="radio" name="filter" value="all">
-                    <span class="checkmark"></span>
-                    <i class="fas fa-list"></i> Show All
-                </label>
-            </div>
-        </div>
-
-        <div class="actions">
-            <button onclick="extractEmails()" class="btn-primary">
-                <i class="fas fa-search"></i> Extract Emails
-            </button>
-            <button onclick="clearAll()" class="btn-secondary">
-                <i class="fas fa-trash"></i> Clear All
-            </button>
-        </div>
-    </div>
-
-    <div class="loading" id="loading" style="display: none;">
-        <div class="spinner"></div>
-        <p>Processing URLs... This may take a moment.</p>
-    </div>
-
-    <div class="result-section">
-        <div class="result-header">
-            <h3><i class="fas fa-chart-bar"></i> Results (<span id="count">0</span>)</h3>
-            <div class="stats" id="stats"></div>
-            <div class="export-buttons" id="exportButtons" style="display: none;">
-                <button onclick="exportEmails('txt')" class="btn-export"><i class="fas fa-file-alt"></i> TXT</button>
-                <button onclick="exportEmails('csv')" class="btn-export"><i class="fas fa-file-csv"></i> CSV</button>
-                <button onclick="exportEmails('json')" class="btn-export"><i class="fas fa-file-code"></i> JSON</button>
-                <button onclick="copyToClipboard()" class="btn-export"><i class="fas fa-copy"></i> Copy</button>
-            </div>
-        </div>
-        
-        <div class="result-container">
-            <div class="result-placeholder" id="placeholder">
-                <i class="fas fa-inbox"></i>
-                <p>Extracted emails will appear here</p>
-            </div>
-            <pre id="output"></pre>
-        </div>
-    </div>
-
-    <div class="features">
-        <h3><i class="fas fa-star"></i> Premium Features</h3>
-        <div class="features-grid">
-            <div class="feature">
-                <i class="fas fa-bolt"></i>
-                <h4>Parallel Processing</h4>
-                <p>Process multiple URLs simultaneously for faster results</p>
-            </div>
-            <div class="feature">
-                <i class="fas fa-shield-alt"></i>
-                <h4>Smart Validation</h4>
-                <p>Advanced email validation with real-time filtering</p>
-            </div>
-            <div class="feature">
-                <i class="fas fa-download"></i>
-                <h4>Multiple Formats</h4>
-                <p>Export results in TXT, CSV, and JSON formats</p>
-            </div>
-            <div class="feature">
-                <i class="fas fa-database"></i>
-                <h4>Result Caching</h4>
-                <p>Faster results for previously processed URLs</p>
-            </div>
-        </div>
-    </div>
-</div>
-
-<script src="/static/script.js"></script>
+    <script src="/static/script.js"></script>
 </body>
- </html>
+
+</html>

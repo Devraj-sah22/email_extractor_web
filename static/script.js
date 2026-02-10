@@ -13,7 +13,7 @@ function showToast(message, type = 'success') {
     toast.className = `toast ${type}`;
     toast.textContent = message;
     document.body.appendChild(toast);
-    
+
     setTimeout(() => toast.classList.add('show'), 100);
     setTimeout(() => {
         toast.classList.remove('show');
@@ -30,96 +30,100 @@ function extractEmails() {
         .split('\n')
         .map(u => u.trim())
         .filter(u => u);
-    
+
     if (urls.length === 0) {
         showToast('Please enter at least one URL', 'error');
         return;
     }
-    
+
     if (urls.length > 10) {
         showToast('Maximum 10 URLs allowed for optimal performance', 'warning');
         return;
     }
-    
+
     const filter = document.querySelector('input[name="filter"]:checked').value;
-    
+    const deepScan = document.getElementById('deepScan')?.checked || false;
+
     showLoading(true);
-    
+
     fetch('/extract', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ urls, filter })
+        body: JSON.stringify({
+            urls,
+            filter,
+            scan_mode: deepScan ? 'deep' : 'fast'
+        })
     })
-    .then(async res => {
-        const data = await res.json();
-        if (!res.ok) throw new Error(data.message || 'Error extracting emails');
-        return data;
-    })
-    .then(data => {
-        if (data.status === 'error') {
-            throw new Error(data.message);
-        }
-        
-        currentEmails = data.emails;
-        
-        document.getElementById('count').innerText = data.count;
-        document.getElementById('output').innerText = currentEmails.join('\n');
-        
-        // Update stats
-        const stats = data.stats || {};
-        document.getElementById('stats').innerHTML = `
+        .then(async res => {
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.message || 'Error extracting emails');
+            return data;
+        })
+        .then(data => {
+            if (data.status === 'error') {
+                throw new Error(data.message);
+            }
+
+            currentEmails = data.emails || [];
+
+            document.getElementById('count').innerText = data.count || 0;
+            document.getElementById('output').innerText = currentEmails.join('\n');
+
+            const stats = data.stats || {};
+            document.getElementById('stats').innerHTML = `
+            Mode: <b>${stats.scan_mode || (deepScan ? 'deep' : 'fast')}</b> |
             Processed ${stats.urls_processed || urls.length} URL(s) in ${stats.processing_time || '?'}s |
             Valid: ${stats.valid_emails || 0} | Invalid: ${stats.invalid_emails || 0}
         `;
-        
-        // Show export buttons if we have results
-        document.getElementById('exportButtons').style.display = 
-            currentEmails.length > 0 ? 'flex' : 'none';
-        
-        // Hide placeholder
-        document.getElementById('placeholder').style.display = 
-            currentEmails.length > 0 ? 'none' : 'block';
-        
-        showToast(data.message + (data.cached ? ' (cached)' : ''));
-    })
-    .catch(error => {
-        showToast(error.message || 'Error extracting emails', 'error');
-        console.error('Error:', error);
-    })
-    .finally(() => {
-        showLoading(false);
-    });
+
+            document.getElementById('exportButtons').style.display =
+                currentEmails.length > 0 ? 'flex' : 'none';
+
+            document.getElementById('placeholder').style.display =
+                currentEmails.length > 0 ? 'none' : 'block';
+
+            showToast(data.message || 'Extraction completed');
+        })
+        .catch(error => {
+            showToast(error.message || 'Error extracting emails', 'error');
+            console.error('Error:', error);
+        })
+        .finally(() => {
+            showLoading(false);
+        });
 }
+
 
 function exportEmails(format) {
     if (currentEmails.length === 0) {
         showToast('No emails to export', 'warning');
         return;
     }
-    
+
     fetch('/export', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ emails: currentEmails, format })
     })
-    .then(res => res.json())
-    .then(data => {
-        const blob = new Blob([data.content], { type: 'text/plain' });
-        const url = window.URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = data.filename;
-        document.body.appendChild(a);
-        a.click();
-        window.URL.revokeObjectURL(url);
-        document.body.removeChild(a);
-        
-        showToast(`Exported as ${format.toUpperCase()}`);
-    })
-    .catch(error => {
-        showToast('Error exporting emails', 'error');
-        console.error('Error:', error);
-    });
+        .then(res => res.json())
+        .then(data => {
+            const blob = new Blob([data.content], { type: 'text/plain' });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = data.filename;
+            document.body.appendChild(a);
+            a.click();
+            window.URL.revokeObjectURL(url);
+            document.body.removeChild(a);
+
+            showToast(`Exported as ${format.toUpperCase()}`);
+        })
+        .catch(error => {
+            showToast('Error exporting emails', 'error');
+            console.error('Error:', error);
+        });
 }
 
 function copyToClipboard() {
@@ -127,7 +131,7 @@ function copyToClipboard() {
         showToast('No emails to copy', 'warning');
         return;
     }
-    
+
     navigator.clipboard.writeText(currentEmails.join('\n'))
         .then(() => showToast('Copied to clipboard!'))
         .catch(() => showToast('Failed to copy', 'error'));
@@ -146,12 +150,12 @@ function clearAll() {
 }
 
 // Initialize
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', function () {
     document.getElementById('urls').addEventListener('input', updateUrlCounter);
     updateUrlCounter();
-    
+
     // Add example URLs on click if empty
-    document.getElementById('urls').addEventListener('click', function(e) {
+    document.getElementById('urls').addEventListener('click', function (e) {
         if (!this.value.trim()) {
             this.value = 'https://example.com\n';
         }
