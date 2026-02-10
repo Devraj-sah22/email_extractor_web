@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Email Extractor Pro</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+
+<div class="container">
+    <h1>📧 Email Extractor <span>PRO</span></h1>
+
+    <textarea id="urls" placeholder="Enter multiple URLs (one per line)"></textarea>
+
+    <div class="filters">
+        <label><input type="radio" name="filter" value="valid" checked> Valid Emails</label>
+        <label><input type="radio" name="filter" value="invalid"> Invalid Emails</label>
+        <label><input type="radio" name="filter" value="all"> Both</label>
+    </div>
+
+    <button onclick="extractEmails()">Extract Emails</button>
+
+    <div class="result">
+        <h3>Results (<span id="count">0</span>)</h3>
+        <pre id="output"></pre>
+    </div>
+</div>
+
+<script src="/static/script.js"></script>
+</body>
+</html>
