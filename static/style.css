@@ -438,3 +438,14 @@ pre {
     color: #00ffd5;
     font-size: 12px;
 }
+
+.result-table th:first-child,
+.result-table td:first-child {
+    width: 40px;
+    text-align: center;
+}
+
+.result-table input[type="checkbox"] {
+    transform: scale(1.1);
+    cursor: pointer;
+}

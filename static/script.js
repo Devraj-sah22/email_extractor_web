@@ -75,6 +75,9 @@ function extractEmails() {
                 const row = document.createElement('tr');
 
                 row.innerHTML = `
+        <td>
+            <input type="checkbox" class="rowCheckbox">
+        </td>
         <td>${item.email}</td>
         <td class="${item.status === 'Valid' ? 'valid' : 'invalid'}">${item.status}</td>
         <td>${item.domain}</td>
@@ -268,5 +271,29 @@ document.addEventListener('DOMContentLoaded', function () {
             }
         });
     }
+    // ===============================
+    // Checkbox Select / Deselect All
+    // ===============================
+    document.addEventListener("change", function (e) {
+        // Select all checkbox
+        if (e.target.id === "selectAll") {
+            const checked = e.target.checked;
+            document.querySelectorAll(".rowCheckbox").forEach(cb => {
+                cb.checked = checked;
+            });
+        }
+
+        // Update selectAll when individual checkbox changes
+        if (e.target.classList.contains("rowCheckbox")) {
+            const all = document.querySelectorAll(".rowCheckbox");
+            const checked = document.querySelectorAll(".rowCheckbox:checked");
+
+            const selectAll = document.getElementById("selectAll");
+            if (selectAll) {
+                selectAll.checked = all.length === checked.length;
+            }
+        }
+    });
+
 
 });
