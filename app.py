@@ -10,6 +10,10 @@ app = Flask(__name__)
 
 EMAIL_REGEX = r'[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}'
 HEADERS = {"User-Agent": "Mozilla/5.0"}
+def normalize_obfuscated(text):
+    text = text.replace(" [at] ", "@").replace("(at)", "@")
+    text = text.replace(" [dot] ", ".").replace("(dot)", ".")
+    return text
 
 # ---------------- UTILS ----------------
 
@@ -35,7 +39,7 @@ def fast_extract(url):
         if r.status_code != 200:
             return emails
 
-        html = r.text
+        html = normalize_obfuscated(r.text)
         soup = BeautifulSoup(html, "html.parser")
 
         # Normal emails
@@ -64,10 +68,13 @@ def deep_extract(url):
     try:
         with sync_playwright() as p:
             browser = p.chromium.launch(headless=True)
-            page = browser.new_page()
-            page.goto(url, wait_until="networkidle", timeout=60000)
-            page.wait_for_timeout(6000)
-            html = page.content()
+            page = browser.new_page(user_agent=HEADERS["User-Agent"])
+
+            page.goto(url, wait_until="domcontentloaded", timeout=60000)
+            page.wait_for_timeout(8000)
+            page.evaluate("window.scrollTo(0, document.body.scrollHeight)")
+
+            html = normalize_obfuscated(page.content())
             browser.close()
 
             emails.update(re.findall(EMAIL_REGEX, html))
@@ -77,17 +84,21 @@ def deep_extract(url):
 
     return emails
 
+
 # ---------------- INTERNAL LINK CRAWL ----------------
 
-def crawl_internal_pages(base_url, limit=6):
+def crawl_internal_pages(base_url, limit=15):
     urls = set()
+    base_domain = urlparse(base_url).netloc
     try:
         r = requests.get(base_url, headers=HEADERS, timeout=10)
         soup = BeautifulSoup(r.text, "html.parser")
 
         for a in soup.find_all("a", href=True):
             link = urljoin(base_url, a["href"])
-            if base_url in link and len(urls) < limit:
+            parsed = urlparse(link)
+
+            if parsed.netloc == base_domain and len(urls) < limit:
                 urls.add(link)
 
     except:
@@ -100,18 +111,19 @@ def crawl_internal_pages(base_url, limit=6):
 def extract_emails_global(url):
     found = set()
 
-    # 1️⃣ Fast scan
-    found |= fast_extract(url)
-
-    # 2️⃣ Crawl internal pages
-    for sub in crawl_internal_pages(url):
-        found |= fast_extract(sub)
-
-    # 3️⃣ Deep scan if still empty
-    if not found:
+    # Force JS scan for faculty/staff pages
+    if any(k in url.lower() for k in ["faculty", "staff", "people"]):
         found |= deep_extract(url)
 
+    found |= fast_extract(url)
+    
+    for sub in crawl_internal_pages(url):
+        found |= fast_extract(sub)
+        if not found:
+            found |= deep_extract(sub)
+
     return found
+
 
 # ---------------- ROUTES ----------------
 
