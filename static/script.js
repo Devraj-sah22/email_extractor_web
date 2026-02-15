@@ -169,6 +169,33 @@ function clearAll() {
     showToast('Cleared all content');
 }
 
+// ===============================
+// Email Table Search Function
+// ===============================
+
+function filterEmailTable() {
+    const input = document.getElementById("emailSearch");
+    if (!input) return;
+
+    const filter = input.value.toLowerCase();
+    const table = document.getElementById("resultTable");
+    if (!table) return;
+
+    const rows = table.querySelectorAll("tbody tr");
+
+    rows.forEach(row => {
+        const email = row.cells[0]?.innerText.toLowerCase() || "";
+        const domain = row.cells[2]?.innerText.toLowerCase() || "";
+
+        if (email.includes(filter) || domain.includes(filter)) {
+            row.style.display = "";
+        } else {
+            row.style.display = "none";
+        }
+    });
+}
+
+
 // Initialize
 document.addEventListener('DOMContentLoaded', function () {
     document.getElementById('urls').addEventListener('input', updateUrlCounter);

@@ -390,3 +390,32 @@ pre {
 .result-table button:hover {
     background: rgba(0, 255, 213, 0.3);
 }
+
+
+/* ===============================
+   Table Search Box
+   =============================== */
+
+.table-search {
+    margin: 15px 0;
+    text-align: right;
+}
+
+.table-search input {
+    width: 280px;
+    padding: 10px 14px;
+    border-radius: 8px;
+    border: 1px solid rgba(255,255,255,0.2);
+    background: rgba(0,0,0,0.3);
+    color: #fff;
+    font-size: 14px;
+    outline: none;
+}
+
+.table-search input::placeholder {
+    color: #aaa;
+}
+
+.table-search input:focus {
+    border-color: #00ffd5;
+}
