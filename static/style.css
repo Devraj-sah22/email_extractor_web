@@ -92,7 +92,8 @@ textarea:focus {
     margin-bottom: 30px;
 }
 
-.filters h3, .result-header h3 {
+.filters h3,
+.result-header h3 {
     margin-bottom: 15px;
     color: #00ffd5;
 }
@@ -183,8 +184,13 @@ button {
 }
 
 @keyframes spin {
-    0% { transform: rotate(0deg); }
-    100% { transform: rotate(360deg); }
+    0% {
+        transform: rotate(0deg);
+    }
+
+    100% {
+        transform: rotate(360deg);
+    }
 }
 
 .result-section {
@@ -326,12 +332,61 @@ pre {
         width: 95%;
         padding: 20px;
     }
-    
+
     .controls {
         grid-template-columns: 1fr;
     }
-    
+
     .features-grid {
         grid-template-columns: 1fr;
     }
+}
+
+/* ===============================
+   Email Results Table Styling
+   =============================== */
+
+.result-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 20px;
+}
+
+.result-table th,
+.result-table td {
+    padding: 12px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    text-align: left;
+}
+
+.result-table th {
+    color: #00ffd5;
+    font-weight: 600;
+}
+
+.result-table tr:hover {
+    background: rgba(0, 255, 213, 0.08);
+}
+
+.valid {
+    color: #4caf50;
+    font-weight: bold;
+}
+
+.invalid {
+    color: #ff5252;
+    font-weight: bold;
+}
+
+.result-table button {
+    background: rgba(255, 255, 255, 0.15);
+    border: none;
+    color: #fff;
+    padding: 6px 12px;
+    border-radius: 6px;
+    cursor: pointer;
+}
+
+.result-table button:hover {
+    background: rgba(0, 255, 213, 0.3);
 }

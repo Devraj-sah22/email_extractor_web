@@ -154,30 +154,52 @@ def extract():
         for result in exe.map(extract_emails_global, final_urls):
             all_emails |= result
 
-    valid, invalid = [], []
-    for e in all_emails:
-        (valid if validators.email(e) else invalid).append(e)
+    # ------------------------------------------------------------------
+    # ✅ NEW: STRUCTURED EMAIL OBJECTS (WITHOUT REMOVING OLD LOGIC)
+    # ------------------------------------------------------------------
 
+    structured_results = []
+    valid_count = 0
+    invalid_count = 0
+
+    for email in sorted(all_emails):
+        is_valid = validators.email(email)
+        domain = email.split("@")[-1]
+
+        if is_valid:
+            valid_count += 1
+        else:
+            invalid_count += 1
+
+        structured_results.append({
+            "email": email,              # Email Address
+            "status": "Valid" if is_valid else "Invalid",
+            "domain": domain,
+            "source": "Website",         # Can be improved later
+            "actions": ["copy"]          # UI helper
+        })
+
+    # Apply filter (valid / invalid / all)
     if filter_type == "valid":
-        result = valid
+        result = [r for r in structured_results if r["status"] == "Valid"]
     elif filter_type == "invalid":
-        result = invalid
+        result = [r for r in structured_results if r["status"] == "Invalid"]
     else:
-        result = list(all_emails)
+        result = structured_results
 
     return jsonify({
         "status": "success",
         "count": len(result),
-        "emails": sorted(result),
+        "emails": result,
         "stats": {
             "urls_processed": len(final_urls),
             "total_found": len(all_emails),
-            "valid_emails": len(valid),
-            "invalid_emails": len(invalid),
+            "valid_emails": valid_count,
+            "invalid_emails": invalid_count,
             "processing_time": round(time.time() - start, 2)
         },
         "message": "Extraction completed"
     })
 
 if __name__ == "__main__":
-    app.run(debug=True)
+     app.run(debug=True)

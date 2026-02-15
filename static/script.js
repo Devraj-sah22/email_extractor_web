@@ -68,7 +68,27 @@ function extractEmails() {
             currentEmails = data.emails || [];
 
             document.getElementById('count').innerText = data.count || 0;
-            document.getElementById('output').innerText = currentEmails.join('\n');
+            const tbody = document.querySelector('#resultTable tbody');
+            tbody.innerHTML = '';
+
+            data.emails.forEach(item => {
+                const row = document.createElement('tr');
+
+                row.innerHTML = `
+        <td>${item.email}</td>
+        <td class="${item.status === 'Valid' ? 'valid' : 'invalid'}">${item.status}</td>
+        <td>${item.domain}</td>
+        <td>${item.source}</td>
+        <td>
+            <button onclick="navigator.clipboard.writeText('${item.email}')">
+                Copy
+            </button>
+        </td>
+    `;
+
+                tbody.appendChild(row);
+            });
+
 
             const stats = data.stats || {};
             document.getElementById('stats').innerHTML = `
