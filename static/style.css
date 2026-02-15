@@ -13,7 +13,7 @@ body {
 }
 
 .container {
-    width: 800px;
+    width: 1000px;
     margin: 40px auto;
     background: rgba(255, 255, 255, 0.08);
     backdrop-filter: blur(20px);
@@ -418,4 +418,23 @@ pre {
 
 .table-search input:focus {
     border-color: #00ffd5;
+}
+/* ===============================
+   Table Sorting Indicators
+   =============================== */
+.result-table th {
+    cursor: pointer;
+    user-select: none;
+}
+
+.result-table th.asc::after {
+    content: " ▲";
+    color: #00ffd5;
+    font-size: 12px;
+}
+
+.result-table th.desc::after {
+    content: " ▼";
+    color: #00ffd5;
+    font-size: 12px;
 }

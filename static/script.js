@@ -208,4 +208,65 @@ document.addEventListener('DOMContentLoaded', function () {
         }
         updateUrlCounter();
     });
+    // ===============================
+    // DYNAMIC TABLE SORT (WORKING)
+    // ===============================
+    let sortState = {
+        column: -1,
+        asc: true
+    };
+
+    // Event delegation: works even after table updates
+    document.addEventListener("click", function (e) {
+        const th = e.target.closest("#resultTable th");
+        if (!th) return;
+
+        const headers = Array.from(th.parentElement.children);
+        const colIndex = headers.indexOf(th);
+
+        // Ignore Actions column
+        if (colIndex === headers.length - 1) return;
+
+        sortTableByColumn(colIndex);
+    });
+
+    function sortTableByColumn(colIndex) {
+        const table = document.getElementById("resultTable");
+        if (!table || !table.tBodies.length) return;
+
+        const tbody = table.tBodies[0];
+        const rows = Array.from(tbody.rows);
+
+        // Toggle sort direction
+        if (sortState.column === colIndex) {
+            sortState.asc = !sortState.asc;
+        } else {
+            sortState.column = colIndex;
+            sortState.asc = true;
+        }
+
+        rows.sort((rowA, rowB) => {
+            const a = rowA.cells[colIndex]?.innerText.trim().toLowerCase() || "";
+            const b = rowB.cells[colIndex]?.innerText.trim().toLowerCase() || "";
+
+            return sortState.asc
+                ? a.localeCompare(b)
+                : b.localeCompare(a);
+        });
+
+        rows.forEach(row => tbody.appendChild(row));
+        updateSortIcons(colIndex);
+    }
+
+    function updateSortIcons(colIndex) {
+        const headers = document.querySelectorAll("#resultTable th");
+
+        headers.forEach((th, i) => {
+            th.classList.remove("asc", "desc");
+            if (i === colIndex) {
+                th.classList.add(sortState.asc ? "asc" : "desc");
+            }
+        });
+    }
+
 });
