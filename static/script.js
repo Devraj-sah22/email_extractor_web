@@ -119,34 +119,65 @@ function extractEmails() {
 
 
 function exportEmails(format) {
-    if (currentEmails.length === 0) {
-        showToast('No emails to export', 'warning');
+    const rows = document.querySelectorAll("#resultTable tbody tr");
+    const validEmails = [];
+    const invalidEmails = [];
+
+    const anySelected = Array.from(rows).some(
+        row => row.querySelector(".rowCheckbox")?.checked
+    );
+
+    rows.forEach(row => {
+        const checkbox = row.querySelector(".rowCheckbox");
+        if (!checkbox) return;
+
+        if (anySelected && !checkbox.checked) return;
+
+        const email = row.cells[1].innerText.trim();
+        const status = row.cells[2].innerText.trim();
+
+        if (status === "Valid") {
+            validEmails.push(email);
+        } else {
+            invalidEmails.push(email);
+        }
+    });
+
+    const emails = [...validEmails, ...invalidEmails];
+
+    if (emails.length === 0) {
+        showToast("No emails to export", "warning");
         return;
     }
 
-    fetch('/export', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ emails: currentEmails, format })
-    })
-        .then(res => res.json())
-        .then(data => {
-            const blob = new Blob([data.content], { type: 'text/plain' });
-            const url = window.URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = data.filename;
-            document.body.appendChild(a);
-            a.click();
-            window.URL.revokeObjectURL(url);
-            document.body.removeChild(a);
+    let content = "";
+    let mime = "text/plain";
+    let filename = `emails.${format}`;
 
-            showToast(`Exported as ${format.toUpperCase()}`);
-        })
-        .catch(error => {
-            showToast('Error exporting emails', 'error');
-            console.error('Error:', error);
-        });
+    if (format === "txt") {
+        content = emails.join("\n");
+    }
+    else if (format === "csv") {
+        content = "Email\n" + emails.join("\n");
+    }
+    else if (format === "json") {
+        content = JSON.stringify(emails, null, 2);
+        mime = "application/json";
+    }
+
+    const blob = new Blob([content], { type: mime });
+    const url = URL.createObjectURL(blob);
+
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+
+    URL.revokeObjectURL(url);
+    document.body.removeChild(a);
+
+    showToast(`Exported ${emails.length} email(s)`);
 }
 
 function copyToClipboard() {
@@ -294,6 +325,40 @@ document.addEventListener('DOMContentLoaded', function () {
             }
         }
     });
+    // ===============================
+    // Collect Emails for Export
+    // ===============================
+    function getEmailsForExport() {
+        const rows = document.querySelectorAll("#resultTable tbody tr");
+        const selectedRows = [];
+        const validEmails = [];
+        const invalidEmails = [];
+
+        // Check if any checkbox is selected
+        const anySelected = Array.from(rows).some(
+            row => row.querySelector(".rowCheckbox")?.checked
+        );
+
+        rows.forEach(row => {
+            const checkbox = row.querySelector(".rowCheckbox");
+            if (!checkbox) return;
+
+            // If some are selected, ignore unchecked rows
+            if (anySelected && !checkbox.checked) return;
+
+            const email = row.cells[1].innerText.trim();   // Email Address
+            const status = row.cells[2].innerText.trim();  // Status
+
+            if (status === "Valid") {
+                validEmails.push(email);
+            } else {
+                invalidEmails.push(email);
+            }
+        });
+
+        // Valid first, Invalid last
+        return [...validEmails, ...invalidEmails];
+    }
 
 
 });
