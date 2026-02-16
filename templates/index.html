@@ -110,6 +110,26 @@
                 </table>
 
             </div>
+            <!-- PAGINATION CONTROLS -->
+            <div class="pagination" id="pagination" style="display:none;">
+                <div class="rows-per-page">
+                    Rows per page:
+                    <select id="rowsPerPage">
+                        <option value="20" selected>20</option>
+                        <option value="50">50</option>
+                        <option value="100">100</option>
+                    </select>
+                </div>
+
+                <div class="pagination-buttons">
+                    <button onclick="goToFirstPage()">« First</button>
+                    <button onclick="prevPage()">‹ Prev</button>
+                    <span id="pageInfo">Page 1 of 1</span>
+                    <button onclick="nextPage()">Next ›</button>
+                    <button onclick="goToLastPage()">Last »</button>
+                </div>
+            </div>
+
         </div>
 
         <div class="features">

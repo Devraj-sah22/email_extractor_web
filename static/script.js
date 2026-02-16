@@ -1,4 +1,11 @@
 let currentEmails = [];
+/* ===============================
+   NEW: Pagination State (ADDED)
+   =============================== */
+let filteredEmails = [];
+let currentPage = 1;
+let rowsPerPage = 20;
+
 
 function updateUrlCounter() {
     const urls = document.getElementById('urls').value
@@ -91,7 +98,10 @@ function extractEmails() {
 
                 tbody.appendChild(row);
             });
-
+            /* ===== NEW: Pagination initialization (ADDED) ===== */
+            filteredEmails = [...currentEmails];
+            currentPage = 1;
+            renderPaginatedTable();
 
             const stats = data.stats || {};
             document.getElementById('stats').innerHTML = `
@@ -115,6 +125,71 @@ function extractEmails() {
         .finally(() => {
             showLoading(false);
         });
+}
+/* ===============================
+   NEW: Pagination Render Logic
+   =============================== */
+function renderPaginatedTable() {
+    const tbody = document.querySelector('#resultTable tbody');
+    if (!tbody) return;
+
+    tbody.innerHTML = '';
+
+    const start = (currentPage - 1) * rowsPerPage;
+    const end = start + rowsPerPage;
+    const pageData = filteredEmails.slice(start, end);
+
+    pageData.forEach(item => {
+        const row = document.createElement('tr');
+        row.innerHTML = `
+            <td><input type="checkbox" class="rowCheckbox"></td>
+            <td>${item.email}</td>
+            <td class="${item.status === 'Valid' ? 'valid' : 'invalid'}">${item.status}</td>
+            <td>${item.domain}</td>
+            <td>${item.source}</td>
+            <td>
+                <button onclick="navigator.clipboard.writeText('${item.email}')">Copy</button>
+            </td>
+        `;
+        tbody.appendChild(row);
+    });
+
+    updatePaginationUI();
+}
+
+function updatePaginationUI() {
+    const pagination = document.getElementById('pagination');
+    const pageInfo = document.getElementById('pageInfo');
+    if (!pagination || !pageInfo) return;
+
+    const totalPages = Math.ceil(filteredEmails.length / rowsPerPage) || 1;
+    pageInfo.innerText = `Page ${currentPage} of ${totalPages}`;
+    pagination.style.display = filteredEmails.length ? 'flex' : 'none';
+}
+
+function nextPage() {
+    const totalPages = Math.ceil(filteredEmails.length / rowsPerPage);
+    if (currentPage < totalPages) {
+        currentPage++;
+        renderPaginatedTable();
+    }
+}
+
+function prevPage() {
+    if (currentPage > 1) {
+        currentPage--;
+        renderPaginatedTable();
+    }
+}
+
+function goToFirstPage() {
+    currentPage = 1;
+    renderPaginatedTable();
+}
+
+function goToLastPage() {
+    currentPage = Math.ceil(filteredEmails.length / rowsPerPage);
+    renderPaginatedTable();
 }
 
 
@@ -199,7 +274,11 @@ function clearAll() {
     document.getElementById('stats').innerHTML = '';
     document.getElementById('exportButtons').style.display = 'none';
     document.getElementById('placeholder').style.display = 'block';
+    document.getElementById('pagination').style.display = 'none';
     currentEmails = [];
+    filteredEmails = [];
+    currentPage = 1;
+    
     showToast('Cleared all content');
 }
 
@@ -211,7 +290,7 @@ function filterEmailTable() {
     const input = document.getElementById("emailSearch");
     if (!input) return;
 
-    const filter = input.value.toLowerCase();
+    /*const filter = input.value.toLowerCase();
     const table = document.getElementById("resultTable");
     if (!table) return;
 
@@ -226,7 +305,15 @@ function filterEmailTable() {
         } else {
             row.style.display = "none";
         }
-    });
+    });*/
+    const query = input.value.toLowerCase();
+    filteredEmails = currentEmails.filter(item =>
+        item.email.toLowerCase().includes(query) ||
+        item.domain.toLowerCase().includes(query)
+    );
+
+    currentPage = 1;
+    renderPaginatedTable();
 }
 
 
@@ -242,6 +329,13 @@ document.addEventListener('DOMContentLoaded', function () {
         }
         updateUrlCounter();
     });
+    /* ===== NEW: Rows per page listener ===== */
+    document.getElementById('rowsPerPage')?.addEventListener('change', function () {
+        rowsPerPage = parseInt(this.value);
+        currentPage = 1;
+        renderPaginatedTable();
+    });
+    /*
     // ===============================
     // DYNAMIC TABLE SORT (WORKING)
     // ===============================
@@ -301,8 +395,57 @@ document.addEventListener('DOMContentLoaded', function () {
                 th.classList.add(sortState.asc ? "asc" : "desc");
             }
         });
-    }
+    }*/
     // ===============================
+    // DYNAMIC TABLE SORT (WORKING)
+    // ===============================
+    let sortState = {
+        column: -1,
+        asc: true
+    };
+
+    document.addEventListener("click", function (e) {
+        const th = e.target.closest("#resultTable th");
+        if (!th) return;
+
+        const headers = Array.from(th.parentElement.children);
+        const colIndex = headers.indexOf(th);
+        if (colIndex === headers.length - 1) return;
+
+        sortTableByColumn(colIndex);
+    });
+
+    function sortTableByColumn(colIndex) {
+        if (!filteredEmails.length) return;
+
+        if (sortState.column === colIndex) {
+            sortState.asc = !sortState.asc;
+        } else {
+            sortState.column = colIndex;
+            sortState.asc = true;
+        }
+
+        filteredEmails.sort((a, b) => {
+            const A = Object.values(a)[colIndex]?.toString().toLowerCase() || "";
+            const B = Object.values(b)[colIndex]?.toString().toLowerCase() || "";
+            return sortState.asc ? A.localeCompare(B) : B.localeCompare(A);
+        });
+
+        currentPage = 1;
+        renderPaginatedTable();
+        updateSortIcons(colIndex);
+    }
+
+    function updateSortIcons(colIndex) {
+        const headers = document.querySelectorAll("#resultTable th");
+        headers.forEach((th, i) => {
+            th.classList.remove("asc", "desc");
+            if (i === colIndex) {
+                th.classList.add(sortState.asc ? "asc" : "desc");
+            }
+        });
+    }
+    /*// ===============================
     // Checkbox Select / Deselect All
     // ===============================
     document.addEventListener("change", function (e) {
@@ -324,7 +467,25 @@ document.addEventListener('DOMContentLoaded', function () {
                 selectAll.checked = all.length === checked.length;
             }
         }
+    });*/
+    // ===============================
+    // Checkbox Select / Deselect All
+    // ===============================
+    document.addEventListener("change", function (e) {
+        if (e.target.id === "selectAll") {
+            document.querySelectorAll(".rowCheckbox").forEach(cb => {
+                cb.checked = e.target.checked;
+            });
+        }
+
+        if (e.target.classList.contains("rowCheckbox")) {
+            const all = document.querySelectorAll(".rowCheckbox");
+            const checked = document.querySelectorAll(".rowCheckbox:checked");
+            const selectAll = document.getElementById("selectAll");
+            if (selectAll) selectAll.checked = all.length === checked.length;
+        }
     });
+
     // ===============================
     // Collect Emails for Export
     // ===============================

@@ -449,3 +449,54 @@ pre {
     transform: scale(1.1);
     cursor: pointer;
 }
+/* ===============================
+   Pagination Styling
+   =============================== */
+
+.pagination {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 20px;
+    padding: 12px 16px;
+    background: rgba(0,0,0,0.3);
+    border-radius: 10px;
+}
+
+.rows-per-page select {
+    background: rgba(0,0,0,0.4);
+    color: #fff;
+    border: 1px solid rgba(255,255,255,0.2);
+    padding: 6px 10px;
+    border-radius: 6px;
+    outline: none;
+}
+
+.pagination-buttons {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.pagination button {
+    padding: 6px 12px;
+    border-radius: 6px;
+    border: none;
+    background: rgba(255,255,255,0.15);
+    color: #fff;
+    cursor: pointer;
+}
+
+.pagination button:hover {
+    background: rgba(0,255,213,0.3);
+}
+
+.pagination button:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
+#pageInfo {
+    font-size: 14px;
+    color: #aaa;
+}
