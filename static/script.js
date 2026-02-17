@@ -278,7 +278,7 @@ function clearAll() {
     currentEmails = [];
     filteredEmails = [];
     currentPage = 1;
-    
+
     showToast('Cleared all content');
 }
 
@@ -418,6 +418,10 @@ document.addEventListener('DOMContentLoaded', function () {
     function sortTableByColumn(colIndex) {
         if (!filteredEmails.length) return;
 
+        // Ignore checkbox (0) and actions (last column)
+        if (colIndex === 0 || colIndex === 5) return;
+
+        // Toggle sort direction
         if (sortState.column === colIndex) {
             sortState.asc = !sortState.asc;
         } else {
@@ -425,16 +429,31 @@ document.addEventListener('DOMContentLoaded', function () {
             sortState.asc = true;
         }
 
+        // Table column → data field mapping
+        const columnFieldMap = {
+            1: "email",
+            2: "status",
+            3: "domain",
+            4: "source"
+        };
+
+        const field = columnFieldMap[colIndex];
+        if (!field) return;
+
         filteredEmails.sort((a, b) => {
-            const A = Object.values(a)[colIndex]?.toString().toLowerCase() || "";
-            const B = Object.values(b)[colIndex]?.toString().toLowerCase() || "";
-            return sortState.asc ? A.localeCompare(B) : B.localeCompare(A);
+            const A = (a[field] || "").toLowerCase();
+            const B = (b[field] || "").toLowerCase();
+
+            return sortState.asc
+                ? A.localeCompare(B)
+                : B.localeCompare(A);
         });
 
         currentPage = 1;
         renderPaginatedTable();
         updateSortIcons(colIndex);
     }
+
 
     function updateSortIcons(colIndex) {
         const headers = document.querySelectorAll("#resultTable th");
