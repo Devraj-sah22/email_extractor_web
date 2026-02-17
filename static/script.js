@@ -72,7 +72,16 @@ function extractEmails() {
                 throw new Error(data.message);
             }
 
-            currentEmails = data.emails || [];
+            // ===============================
+            // 🔹 ADDED: persist selection state
+            // ===============================
+            currentEmails = (data.emails || []).map(e => ({
+                ...e,
+                selected: false
+            }));
+
+            // 🔹 ADDED: keep filteredEmails in sync
+            filteredEmails = [...currentEmails];
 
             document.getElementById('count').innerText = data.count || 0;
             const tbody = document.querySelector('#resultTable tbody');
@@ -95,7 +104,10 @@ function extractEmails() {
             </button>
         </td>
     `;
-
+                // ===============================
+                // 🔹 ADDED: ensure pagination render uses updated data
+                // ===============================
+                currentPage = 1;
                 tbody.appendChild(row);
             });
             /* ===== NEW: Pagination initialization (ADDED) ===== */
@@ -142,7 +154,15 @@ function renderPaginatedTable() {
     pageData.forEach(item => {
         const row = document.createElement('tr');
         row.innerHTML = `
-            <td><input type="checkbox" class="rowCheckbox"></td>
+            <td>
+    <input
+        type="checkbox"
+        class="rowCheckbox"
+        data-email="${item.email}"
+        ${item.selected ? "checked" : ""}
+    >
+</td>
+
             <td>${item.email}</td>
             <td class="${item.status === 'Valid' ? 'valid' : 'invalid'}">${item.status}</td>
             <td>${item.domain}</td>
@@ -218,7 +238,37 @@ function exportEmails(format) {
         }
     });
 
-    const emails = [...validEmails, ...invalidEmails];
+    let emails = [...validEmails, ...invalidEmails];
+    // ===============================
+    // 🔹 ADDED: GLOBAL SELECTION SUPPORT (ALL PAGES)
+    // ===============================
+    if (typeof currentEmails !== "undefined" && currentEmails.length) {
+        const selectedDataEmails = currentEmails.filter(e => e.selected);
+
+        if (selectedDataEmails.length > 0) {
+            const valid = selectedDataEmails
+                .filter(e => e.status === "Valid")
+                .map(e => e.email);
+
+            const invalid = selectedDataEmails
+                .filter(e => e.status === "Invalid")
+                .map(e => e.email);
+
+            emails = [...valid, ...invalid];
+        }
+        // ✅ CASE 2: If NOTHING selected → export ALL emails (ALL pages)
+        if (selectedDataEmails.length === 0) {
+            const valid = currentEmails
+                .filter(e => e.status === "Valid")
+                .map(e => e.email);
+
+            const invalid = currentEmails
+                .filter(e => e.status === "Invalid")
+                .map(e => e.email);
+
+            emails = [...valid, ...invalid];
+        }
+    }
 
     if (emails.length === 0) {
         showToast("No emails to export", "warning");
@@ -488,22 +538,47 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     });*/
     // ===============================
-    // Checkbox Select / Deselect All
+    // Checkbox Select / Deselect All (ALL PAGES)
     // ===============================
     document.addEventListener("change", function (e) {
+
+        // ✅ SELECT ALL (ACROSS ALL PAGES)
         if (e.target.id === "selectAll") {
-            document.querySelectorAll(".rowCheckbox").forEach(cb => {
-                cb.checked = e.target.checked;
+            const checked = e.target.checked;
+
+            // Update selection in DATA (not DOM)
+            currentEmails.forEach(email => {
+                email.selected = checked;
             });
+
+            filteredEmails.forEach(email => {
+                email.selected = checked;
+            });
+
+            // Re-render current page to reflect selection
+            renderPaginatedTable();
         }
 
+        // ✅ SINGLE ROW CHECKBOX
         if (e.target.classList.contains("rowCheckbox")) {
-            const all = document.querySelectorAll(".rowCheckbox");
-            const checked = document.querySelectorAll(".rowCheckbox:checked");
+            const emailValue = e.target.dataset.email;
+
+            // Update selection in main data
+            const emailObj = currentEmails.find(e => e.email === emailValue);
+            if (emailObj) {
+                emailObj.selected = e.target.checked;
+            }
+
+            // Update "Select All" checkbox state
             const selectAll = document.getElementById("selectAll");
-            if (selectAll) selectAll.checked = all.length === checked.length;
+            if (selectAll) {
+                selectAll.checked =
+                    currentEmails.length > 0 &&
+                    currentEmails.every(e => e.selected);
+            }
         }
     });
+
 
     // ===============================
     // Collect Emails for Export
