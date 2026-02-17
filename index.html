@@ -47,7 +47,8 @@
         .shape-2 {
             width: 400px;
             height: 400px;
-            bottom: -200px;
+            /* bottom: -200px; */
+            bottom: 0px;
             right: -200px;
             animation-delay: 2s;
         }
@@ -268,6 +269,124 @@
             text-transform: uppercase;
             letter-spacing: 1px;
         }
+                /* Modern Marquee Section */
+        .marquee-section {
+            margin-top: 50px;
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 30px 0;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            overflow: hidden;
+            position: relative;
+            animation: fadeInUp 1s ease 1.1s both;
+        }
+
+        .marquee-section::before,
+        .marquee-section::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            width: 100px;
+            height: 100%;
+            z-index: 2;
+            pointer-events: none;
+        }
+
+        .marquee-section::before {
+            left: 0;
+            background: linear-gradient(90deg, rgba(102, 126, 234, 0.2), transparent);
+        }
+
+        .marquee-section::after {
+            right: 0;
+            background: linear-gradient(-90deg, rgba(102, 126, 234, 0.2), transparent);
+        }
+
+        .marquee-title {
+            text-align: center;
+            color: white;
+            font-size: 1.2rem;
+            font-weight: 600;
+            margin-bottom: 20px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            opacity: 0.9;
+        }
+
+        .marquee-title i {
+            margin: 0 10px;
+            color: #ffd700;
+        }
+
+        .marquee-container {
+            display: flex;
+            overflow: hidden;
+            user-select: none;
+            gap: 20px;
+        }
+
+        .marquee-content {
+            display: flex;
+            gap: 20px;
+            animation: scroll 30s linear infinite;
+            white-space: nowrap;
+        }
+
+        .marquee-content:hover {
+            animation-play-state: paused;
+        }
+
+        .marquee-item {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            padding: 12px 25px;
+            background: rgba(255, 255, 255, 0.15);
+            border-radius: 50px;
+            color: white;
+            font-size: 1rem;
+            font-weight: 500;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            backdrop-filter: blur(5px);
+            transition: all 0.3s ease;
+            cursor: default;
+        }
+
+        .marquee-item i {
+            color: #ffd700;
+            font-size: 1.1rem;
+        }
+
+        .marquee-item:hover {
+            background: rgba(255, 255, 255, 0.25);
+            transform: scale(1.05);
+            border-color: rgba(255, 255, 255, 0.4);
+        }
+
+        .marquee-item strong {
+            color: #ffd700;
+            font-weight: 700;
+            margin-left: 5px;
+        }
+
+        /* Duplicate marquee for seamless loop */
+        .marquee-content-duplicate {
+            display: flex;
+            gap: 20px;
+            animation: scroll 30s linear infinite;
+            white-space: nowrap;
+        }
+
+        @keyframes scroll {
+            from {
+                transform: translateX(0);
+            }
+            to {
+                transform: translateX(-100%);
+            }
+        }
+
 
         /* Animations */
         @keyframes fadeInDown {
@@ -314,6 +433,10 @@
             .card {
                 padding: 30px 20px;
             }
+            .marquee-item {
+                padding: 8px 15px;
+                font-size: 0.9rem;
+            }
         }
 
         @media (max-width: 480px) {
@@ -327,6 +450,10 @@
             
             .card h3 {
                 font-size: 1.5rem;
+            }
+            .marquee-item {
+                padding: 6px 12px;
+                font-size: 0.8rem;
             }
         }
 
@@ -430,7 +557,6 @@
                     Extract from URLs
                 </button>
             </div>
-
             
         </div>
 
@@ -447,6 +573,77 @@
             <div class="stat-item">
                 <div class="stat-number">24/7</div>
                 <div class="stat-label">Availability</div>
+            </div>
+        </div>
+         <!-- Modern Marquee Section -->
+        <div class="marquee-section">
+            <div class="marquee-title">
+                <i class="fas fa-star"></i>
+                TRUSTED BY PROFESSIONALS WORLDWIDE
+                <i class="fas fa-star"></i>
+            </div>
+            <div class="marquee-container">
+                <div class="marquee-content">
+                    <div class="marquee-item">
+                        <i class="fas fa-envelope"></i>
+                        <span>Extracted <strong>1,234</strong> emails today</span>
+                    </div>
+                    <div class="marquee-item">
+                        <i class="fas fa-file-pdf"></i>
+                        <span>Processed <strong>500+</strong> PDFs</span>
+                    </div>
+                    <div class="marquee-item">
+                        <i class="fas fa-file-word"></i>
+                        <span>Scanned <strong>300+</strong> DOCX files</span>
+                    </div>
+                    <div class="marquee-item">
+                        <i class="fas fa-globe"></i>
+                        <span>Crawled <strong>1K+</strong> websites</span>
+                    </div>
+                    <div class="marquee-item">
+                        <i class="fas fa-bolt"></i>
+                        <span><strong>99.9%</strong> uptime guaranteed</span>
+                    </div>
+                    <div class="marquee-item">
+                        <i class="fas fa-shield-alt"></i>
+                        <span><strong>Secure</strong> extraction</span>
+                    </div>
+                    <div class="marquee-item">
+                        <i class="fas fa-clock"></i>
+                        <span><strong>Real-time</strong> processing</span>
+                    </div>
+                </div>
+                <!-- Duplicate for seamless loop -->
+                <div class="marquee-content-duplicate" aria-hidden="true">
+                    <div class="marquee-item">
+                        <i class="fas fa-envelope"></i>
+                        <span>Extracted <strong>1,234</strong> emails today</span>
+                    </div>
+                    <div class="marquee-item">
+                        <i class="fas fa-file-pdf"></i>
+                        <span>Processed <strong>500+</strong> PDFs</span>
+                    </div>
+                    <div class="marquee-item">
+                        <i class="fas fa-file-word"></i>
+                        <span>Scanned <strong>300+</strong> DOCX files</span>
+                    </div>
+                    <div class="marquee-item">
+                        <i class="fas fa-globe"></i>
+                        <span>Crawled <strong>1K+</strong> websites</span>
+                    </div>
+                    <div class="marquee-item">
+                        <i class="fas fa-bolt"></i>
+                        <span><strong>99.9%</strong> uptime guaranteed</span>
+                    </div>
+                    <div class="marquee-item">
+                        <i class="fas fa-shield-alt"></i>
+                        <span><strong>Secure</strong> extraction</span>
+                    </div>
+                    <div class="marquee-item">
+                        <i class="fas fa-clock"></i>
+                        <span><strong>Real-time</strong> processing</span>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -511,6 +708,16 @@
             el.style.transform = 'translateY(30px)';
             el.style.transition = 'all 0.6s ease';
             observer.observe(el);
+        });
+         // Optional: Pause marquee on hover
+        const marqueeContents = document.querySelectorAll('.marquee-content, .marquee-content-duplicate');
+        marqueeContents.forEach(content => {
+            content.addEventListener('mouseenter', () => {
+                content.style.animationPlayState = 'paused';
+            });
+            content.addEventListener('mouseleave', () => {
+                content.style.animationPlayState = 'running';
+            });
         });
     </script>
 </body>
